@@ -1,0 +1,227 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>エリート攻撃回数チェッカー</title>
+  <style>
+    body { font-family: sans-serif; padding: 16px; line-height: 1.6; }
+    h1 { font-size: 1.4rem; margin-bottom: 1rem; }
+    label { font-weight: bold; display: block; margin-bottom: 6px; }
+    select, input[type="number"] {
+      width: 100%; padding: 10px; font-size: 1rem;
+      box-sizing: border-box; margin-bottom: 10px;
+    }
+    button {
+      width: 100%; padding: 12px; font-size: 1rem;
+      background: #007bff; color: white; border: none; border-radius: 6px;
+    }
+    .table-wrapper { overflow-x: auto; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; min-width: 520px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: right; font-size: 0.9rem; }
+    th { background: #f0f0f0; text-align: left; }
+    .danger { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>ボス必要攻撃回数チェッカー</h1>
+
+<label>自分の攻撃力：</label>
+<input type="number" id="atk" min="1" value="10000">
+
+<label>表示範囲(始)：</label>
+<select id="startLevel"></select>
+
+<label>表示範囲(終)：</label>
+<select id="endLevel"></select>
+
+<button id="calcBtn">表示する</button>
+
+<div class="table-wrapper">
+  <table id="resultTable">
+    <thead>
+      <tr>
+        <th>敵名（レベル）</th>
+        <th>ボスHP</th>
+        <th>撃破</th>
+        <th>15%超hit数</th>
+        <th>割合(%)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+const bosses = [
+  { level: 1, name: "三葉虫", hp: 400 },
+  { level: 2, name: "スライム", hp: 571 },
+  { level: 3, name: "ミーアキャット", hp: 832 },
+  { level: 4, name: "プルモノスコルピウス", hp: 1069 },
+  { level: 5, name: "ヒトデ", hp: 1603 },
+  { level: 6, name: "アノマロカリス", hp: 2479 },
+  { level: 7, name: "ゴライアスガエル", hp: 3423 },
+  { level: 8, name: "ネズミ", hp: 4444 },
+  { level: 9, name: "ベールゼブフォ", hp: 6292 },
+  { level: 10, name: "マーロック", hp: 8007 },
+  { level: 11, name: "モンゴララクネ", hp: 10000 },
+  { level: 12, name: "ヤマアラシ", hp: 13010 },
+  { level: 13, name: "カブトガニ", hp: 18430 },
+  { level: 14, name: "コウテイペンギン", hp: 18620 },
+  { level: 15, name: "クロノピオ・デンディアクートゥス", hp: 24180 },
+  { level: 16, name: "オオカミ", hp: 29340 },
+  { level: 17, name: "ゴブリン", hp: 35110 },
+  { level: 18, name: "インパラ", hp: 41600 },
+  { level: 19, name: "メガネウラ", hp: 48500 },
+  { level: 20, name: "レペノマムス", hp: 71600 },
+  { level: 21, name: "ガストルニス", hp: 77900 },
+  { level: 22, name: "キングコブラ", hp: 68570 },
+  { level: 23, name: "アースロプレウラ", hp: 99430 },
+  { level: 24, name: "ラッコ", hp: 96380 },
+  { level: 25, name: "ダイアウルフ", hp: 100800 },
+  { level: 26, name: "コウモリ", hp: 110700 },
+  { level: 27, name: "イボイノシシ", hp: 164700 },
+  { level: 28, name: "スケルトンアーチャー", hp: 129500 },
+  { level: 29, name: "サル", hp: 185300 },
+  { level: 30, name: "アーケオプテリクス", hp: 185600 },
+  { level: 31, name: "オーク", hp: 228800 },
+  { level: 32, name: "ハイエナ", hp: 210000 },
+  { level: 33, name: "コモドドラゴン", hp: 312800 },
+  { level: 34, name: "ノミンギア", hp: 275300 },
+  { level: 35, name: "イクチオサウルス", hp: 304000 },
+  { level: 36, name: "ミクロラプトル", hp: 321300 },
+  { level: 37, name: "ミクソサウルス", hp: 416200 },
+  { level: 38, name: "ドエディクルス", hp: 504000 },
+  { level: 39, name: "ヴェロキラプトル", hp: 416700 },
+  { level: 40, name: "リザードマン", hp: 409900 },
+  { level: 41, name: "ディメトロドン", hp: 516400 },
+  { level: 42, name: "タペジャラ", hp: 673800 },
+  { level: 43, name: "カバ", hp: 904700 },
+  { level: 44, name: "スミロドン", hp: 672800 },
+  { level: 45, name: "ガリミムス", hp: 793000 },
+  { level: 46, name: "プシッタコサウルス", hp: 1135000 },
+  { level: 47, name: "オーガ", hp: 1367000 },
+  { level: 48, name: "オヴィラプトル", hp: 1129000 },
+  { level: 49, name: "アーケロン", hp: 1654000 },
+  { level: 50, name: "ナーガ", hp: 1285000 },
+  { level: 51, name: "ゾウアザラシ", hp: 1904000 },
+  { level: 52, name: "ジャコウウシ", hp: 2263000 },
+  { level: 53, name: "エンテロドン", hp: 2492000 },
+  { level: 54, name: "アンハングエラ", hp: 2082000 },
+  { level: 55, name: "エラスモテリウム", hp: 2885000 },
+  { level: 56, name: "ナノティラヌス", hp: 2370000 },
+  { level: 57, name: "ゾウ", hp: 3744000 },
+  { level: 58, name: "マイアサウラ", hp: 3460000 },
+  { level: 59, name: "ケントロサウルス", hp: 4287000 },
+  { level: 60, name: "ミーアキャット", hp: 3735000 },
+  { level: 61, name: "ティタノボア", hp: 3657000 },
+  { level: 62, name: "ユウティラヌス", hp: 3752000 },
+  { level: 63, name: "アンキロサウルス", hp: 5990000 },
+  { level: 64, name: "アノマロカリス", hp: 5537000 },
+  { level: 65, name: "ホッキョクグマ", hp: 6669000 },
+  { level: 66, name: "クリダステス", hp: 7645000 },
+  { level: 67, name: "イエティ", hp: 7693000 },
+  { level: 68, name: "ゴライアスガエル", hp: 8153000 },
+  { level: 69, name: "カリコテリウム", hp: 9899000 },
+  { level: 70, name: "パキケファロサウルス", hp: 10480000 },
+  { level: 71, name: "三葉虫", hp: 10530000 },
+  { level: 72, name: "スライム", hp: 11630000 },
+  { level: 73, name: "プルモノスコルピウス", hp: 11540000 },
+  { level: 74, name: "モンゴララクネ", hp: 13420000 },
+  { level: 75, name: "ヤマアラシ", hp: 14780000 },
+  { level: 76, name: "レペノマムス", hp: 19670000 },
+  { level: 77, name: "カブトガニ", hp: 19730000 },
+  { level: 78, name: "アースロプレウラ", hp: 22690000 },
+  { level: 79, name: "ダイアウルフ", hp: 20360000 },
+  { level: 80, name: "ミクロラプトル", hp: 22310000 },
+  { level: 81, name: "ネズミ", hp: 27160000 },
+  { level: 82, name: "クロノピオ・デンディアクートゥス", hp: 26350000 },
+  { level: 83, name: "コウモリ", hp: 29250000 },
+  { level: 84, name: "イボイノシシ", hp: 43260000 },
+  { level: 85, name: "ベールゼブフォ", hp: 41960000 },
+  { level: 86, name: "マーロック", hp: 44270000 },
+  { level: 87, name: "ゴブリン", hp: 44120000 },
+  { level: 88, name: "インパラ", hp: 49490000 },
+  { level: 89, name: "ガストルニス", hp: 67770000 },
+  { level: 90, name: "キングコブラ", hp: 58600000 },
+  { level: 91, name: "ハイエナ", hp: 69350000 },
+  { level: 92, name: "コモドドラゴン", hp: 103200000 },
+  { level: 93, name: "アーケロン", hp: 115100000 },
+  { level: 94, name: "ナーガ", hp: 90910000 },
+  { level: 95, name: "ジャコウウシ", hp: 148800000 },
+  { level: 96, name: "ホッキョクグマ", hp: 152700000 },
+  { level: 97, name: "ドエディクルス", hp: 170200000 },
+  { level: 98, name: "ヴェロキラプトル", hp: 140100000 },
+  { level: 99, name: "リザードマン", hp: 137600000 },
+  { level: 100, name: "エンテロドン", hp: 255100000 }
+];
+
+const atkInput = document.getElementById('atk');
+const startLevel = document.getElementById('startLevel');
+const endLevel = document.getElementById('endLevel');
+const calcBtn = document.getElementById('calcBtn');
+const tbody = document.querySelector('#resultTable tbody');
+
+function fillLevelSelect() {
+  for (let i = 1; i <= bosses.length; i++) {
+    const opt1 = document.createElement('option');
+    opt1.value = i;
+    opt1.textContent = i;
+    startLevel.appendChild(opt1);
+
+    const opt2 = document.createElement('option');
+    opt2.value = i;
+    opt2.textContent = i;
+    endLevel.appendChild(opt2);
+  }
+  endLevel.value = bosses.length;
+}
+
+fillLevelSelect();
+
+function calcHits(hp, atk) {
+  return Math.ceil(hp / atk);
+}
+
+function calc15Hits(hp, atk) {
+  return Math.ceil((hp * 0.15) / atk);
+}
+
+function calcPercent(hp, atk, hits) {
+  return ((atk * hits) / hp * 100).toFixed(1);
+}
+
+function renderTable() {
+  const atk = Number(atkInput.value);
+  const s = Number(startLevel.value);
+  const e = Number(endLevel.value);
+
+  tbody.innerHTML = '';
+
+  bosses
+    .filter(b => b.level >= s && b.level <= e)
+    .forEach(boss => {
+      const needHits = calcHits(boss.hp, atk);
+      const hits15 = calc15Hits(boss.hp, atk);
+      const percent15 = calcPercent(boss.hp, atk, hits15);
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="text-align:left;">${boss.name}（Lv.${boss.level}）</td>
+        <td>${boss.hp}</td>
+        <td class="${needHits >= 9 ? 'danger' : ''}">${needHits}</td>
+        <td>${hits15}</td>
+        <td>${percent15}%</td>
+      `;
+      tbody.appendChild(tr);
+    });
+}
+
+calcBtn.addEventListener('click', renderTable);
+renderTable();
+</script>
+
+</body>
+</html>
