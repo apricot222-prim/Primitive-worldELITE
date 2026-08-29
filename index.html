@@ -41,7 +41,6 @@
       border-radius: 6px;
     }
 
-    /* テーブルをスマホで横スクロール可能に */
     .table-wrapper {
       overflow-x: auto;
       margin-top: 20px;
@@ -50,7 +49,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 300px;
+      min-width: 520px;
     }
 
     th, td {
@@ -63,6 +62,11 @@
     th {
       background: #f0f0f0;
       text-align: left;
+    }
+
+    .danger {
+      color: red;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -77,9 +81,11 @@
     <table id="resultTable">
       <thead>
         <tr>
-          <th>レベル</th>
+          <th>敵名（レベル）</th>
           <th>ボスHP</th>
-          <th>必要攻撃回数</th>
+          <th>必要攻撃数</th>
+          <th>15%削る攻撃数</th>
+          <th>その時の削り割合(%)</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -88,11 +94,11 @@
 
   <script>
     const bosses = [
-      { level: 1, hp: 300 },
-      { level: 2, hp: 550 },
-      { level: 3, hp: 900 },
-      { level: 4, hp: 1500 },
-      { level: 5, hp: 2500 }
+      { level: 1, name: "スライムキング", hp: 300 },
+      { level: 2, name: "ファングウルフ", hp: 550 },
+      { level: 3, name: "炎のゴーレム", hp: 900 },
+      { level: 4, name: "古代ドラゴン", hp: 1500 },
+      { level: 5, name: "深淵の魔王", hp: 2500 }
     ];
 
     const atkInput = document.getElementById('atk');
@@ -103,17 +109,32 @@
       return Math.ceil(hp / atk);
     }
 
+    function calc15Hits(hp, atk) {
+      const target = hp * 0.15;
+      return Math.ceil(target / atk);
+    }
+
+    function calcPercent(hp, atk, hits) {
+      return ((atk * hits) / hp * 100).toFixed(1);
+    }
+
     function renderTable() {
       const atk = Number(atkInput.value);
       tbody.innerHTML = '';
 
       bosses.forEach(boss => {
+        const needHits = calcHits(boss.hp, atk);
+        const hits15 = calc15Hits(boss.hp, atk);
+        const percent15 = calcPercent(boss.hp, atk, hits15);
+
         const tr = document.createElement('tr');
 
         tr.innerHTML = `
-          <td style="text-align:left;">Lv.${boss.level}</td>
+          <td style="text-align:left;">${boss.name}（Lv.${boss.level}）</td>
           <td>${boss.hp}</td>
-          <td>${calcHits(boss.hp, atk)}</td>
+          <td class="${needHits >= 9 ? 'danger' : ''}">${needHits}</td>
+          <td>${hits15}</td>
+          <td>${percent15}%</td>
         `;
 
         tbody.appendChild(tr);
